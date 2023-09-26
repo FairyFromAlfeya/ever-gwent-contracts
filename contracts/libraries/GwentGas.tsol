@@ -1,0 +1,5 @@
+pragma ever-solidity ^0.71.0;
+
+library GwentGas {
+    uint128 constant GWENT_TARGET_BALANCE = 1 ever;
+}

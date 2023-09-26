@@ -1,0 +1,35 @@
+pragma ever-solidity ^0.71.0;
+
+pragma AbiHeader expire;
+
+import "@broxus/ever-contracts/contracts/access/abstract/Ownable.tsol";
+
+import "./libraries/GwentGas.tsol";
+import "./libraries/GwentErrors.tsol";
+
+contract Gwent is Ownable {
+    uint32 public static nonce;
+
+    function _getTargetBalanceInternal()
+        internal
+        view
+        override
+        returns (uint128)
+    {
+        return GwentGas.GWENT_TARGET_BALANCE;
+    }
+
+    constructor(
+        address _initialOwner,
+        optional(address) _remainingGasTo
+    )
+        reserveAcceptAndRefund(
+            _getTargetBalanceInternal(),
+            _remainingGasTo,
+            msg.sender
+        )
+        validAddress(_initialOwner, GwentErrors.INITIAL_OWNER_IS_EMPTY)
+    {
+        _setOwnerInternal(_initialOwner);
+    }
+}

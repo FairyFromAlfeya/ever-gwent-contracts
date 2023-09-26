@@ -1,0 +1,5 @@
+pragma ever-solidity ^0.71.0;
+
+library GwentErrors {
+    uint16 constant INITIAL_OWNER_IS_EMPTY = 1000;
+}

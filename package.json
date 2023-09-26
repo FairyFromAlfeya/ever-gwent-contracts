@@ -1,0 +1,39 @@
+{
+  "name": "ever-gwent-contracts",
+  "version": "1.0.0",
+  "repository": "git@github.com:FairyFromAlfeya/ever-gwent-contracts.git",
+  "author": "Alexander Kunekov <fairyfromalfeya@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "prepare": "husky install",
+
+    "format": "prettier --write \"{test,deploy}/**/*.ts\"",
+    "lint": "eslint \"{test,deploy}/**/*.ts\" --fix",
+
+    "build": "locklift build",
+    "test": "locklift test --disable-build -n locklift",
+    "deploy": "locklift deploy --disable-build -n locklift"
+  },
+  "devDependencies": {
+    "@broxus/ever-contracts": "git://github.com/broxus/ever-contracts",
+    "@broxus/locklift-deploy": "1.1.1",
+    "@types/chai": "4.3.6",
+    "@types/mocha": "10.0.1",
+    "@types/node": "20.7.0",
+    "@typescript-eslint/eslint-plugin": "6.7.3",
+    "@typescript-eslint/parser": "6.7.3",
+    "chai": "4.3.8",
+    "dotenv": "16.3.1",
+    "eslint": "8.50.0",
+    "eslint-config-prettier": "9.0.0",
+    "eslint-plugin-prettier": "5.0.0",
+    "husky": "8.0.3",
+    "locklift": "2.8.3",
+    "prettier": "3.0.3",
+    "typescript": "5.2.2"
+  },
+  "resolutions": {
+    "nekoton-wasm": "npm:nekoton-wasm-locklift@1.20.2"
+  }
+}
