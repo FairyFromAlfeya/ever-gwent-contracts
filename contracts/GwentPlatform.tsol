@@ -1,0 +1,69 @@
+pragma ever-solidity ^0.62.0;
+
+pragma AbiHeader expire;
+
+import "@broxus/ever-contracts/contracts/libraries/MsgFlag.tsol";
+
+import "./libraries/GwentGas.tsol";
+
+import "./structures/upgrade/IGwentPlatformUpgradeData.tsol";
+
+contract GwentPlatform {
+    uint8 private static _type;
+    address private static _deployer;
+    TvmCell private static _params;
+
+    constructor(
+        TvmCell _code,
+        uint32 _version,
+        TvmCell _extra,
+        address _remainingGasTo
+    ) public {
+        // Starts to upgrade contract if msg.sender is deployer,
+        // otherwise destroys contract and refund remaining gas
+        if (msg.sender == _deployer && _deployer.value != 0) {
+            _upgrade(
+                _code,
+                _version,
+                _extra,
+                _remainingGasTo
+            );
+        } else {
+            _remainingGasTo.transfer({
+                value: 0,
+                flag: MsgFlag.ALL_NOT_RESERVED + MsgFlag.DESTROY_IF_ZERO,
+                bounce: false
+            });
+        }
+    }
+
+    function _upgrade(
+        TvmCell _code,
+        uint32 _version,
+        TvmCell _extra,
+        address _remainingGasTo
+    ) internal {
+        tvm.rawReserve(GwentGas.GWENT_TARGET_BALANCE, 0);
+
+        // Pack all contract's state
+        TvmCell data = abi.encode(
+            IGwentPlatformUpgradeData.GwentPlatformUpgradeData({
+                versions: IGwentVersions.GwentVersions(_version, uint32(0)),
+                deployer: _deployer,
+                platformCode: tvm.code(),
+                params: _params,
+                extra: _extra,
+                remainingGasTo: _remainingGasTo
+            })
+        );
+
+        // Forever changes contract's code for future calls
+        tvm.setcode(_code);
+        // Changes contract's code for current transaction
+        tvm.setCurrentCode(_code);
+
+        onCodeUpgrade(data);
+    }
+
+    function onCodeUpgrade(TvmCell /*_data*/) private {}
+}

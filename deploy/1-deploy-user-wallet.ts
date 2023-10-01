@@ -4,11 +4,11 @@ export default async (): Promise<void> => {
   await locklift.deployments.deployAccounts(
     [
       {
-        deploymentName: 'OwnerWallet',
-        signerId: '0',
+        deploymentName: 'UserWallet',
+        signerId: '1',
         accountSettings: {
           type: WalletTypes.WalletV3,
-          value: toNano(10),
+          value: toNano(5),
         },
       },
     ],
@@ -16,4 +16,4 @@ export default async (): Promise<void> => {
   );
 };
 
-export const tag = 'owner-wallet';
+export const tag = 'user-wallet';

@@ -1,5 +1,12 @@
-pragma ever-solidity ^0.71.0;
+pragma ever-solidity ^0.62.0;
 
 library GwentGas {
-    uint128 constant GWENT_TARGET_BALANCE = 1 ever;
+    uint128 constant GWENT_TARGET_BALANCE       = 1 ever;
+
+    uint128 constant INDEX_BASIS_DEPLOY_VALUE   = 0.4 ever;
+    uint128 constant INDEX_DEPLOY_VALUE         = 0.15 ever;
+    uint128 constant INDEX_DESTROY_VALUE        = 0.1 ever;
+
+    /// @dev Must be higher than 1 ever + 0.15 ever + 0.15 ever
+    uint128 constant MINT_CARD_VALUE            = 2 ever;
 }

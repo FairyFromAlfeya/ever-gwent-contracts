@@ -1,0 +1,5 @@
+pragma ever-solidity ^0.62.0;
+
+library GwentPlatformTypes {
+    uint8 constant PLATFORM_TYPE_CARD = 1;
+}

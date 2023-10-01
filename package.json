@@ -8,21 +8,29 @@
   "scripts": {
     "prepare": "husky install",
 
-    "format": "prettier --write \"{test,deploy}/**/*.ts\"",
-    "lint": "eslint \"{test,deploy}/**/*.ts\" --fix",
+    "format": "prettier --write \"{scripts,test,deploy}/**/*.ts\"",
+    "lint": "eslint \"{scripts,test,deploy}/**/*.ts\" --fix",
 
     "build": "locklift build",
     "test": "locklift test --disable-build -n locklift",
-    "deploy": "locklift deploy --disable-build -n locklift"
+    "deploy": "locklift deploy --disable-build -n locklift",
+    "verify": "locklift verify",
+
+    "set-card-code": "locklift run --disable-build -s scripts/1-set-card-code.ts -n",
+    "mint": "locklift run --disable-build -s scripts/0-mint-card.ts -n"
   },
   "devDependencies": {
     "@broxus/ever-contracts": "git://github.com/broxus/ever-contracts",
+    "@broxus/tip4": "git://github.com/broxus/tip4",
     "@broxus/locklift-deploy": "1.1.1",
+    "@broxus/locklift-verifier": "1.0.5",
     "@types/chai": "4.3.6",
     "@types/mocha": "10.0.1",
     "@types/node": "20.7.0",
+    "@types/prompts": "2.4.5",
     "@typescript-eslint/eslint-plugin": "6.7.3",
     "@typescript-eslint/parser": "6.7.3",
+    "bignumber.js": "9.1.2",
     "chai": "4.3.8",
     "dotenv": "16.3.1",
     "eslint": "8.50.0",
@@ -31,6 +39,7 @@
     "husky": "8.0.3",
     "locklift": "2.8.3",
     "prettier": "3.0.3",
+    "prompts": "2.4.2",
     "typescript": "5.2.2"
   },
   "resolutions": {

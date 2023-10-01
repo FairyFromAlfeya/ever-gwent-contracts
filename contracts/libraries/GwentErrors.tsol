@@ -1,5 +1,14 @@
-pragma ever-solidity ^0.71.0;
+pragma ever-solidity ^0.62.0;
 
 library GwentErrors {
-    uint16 constant INITIAL_OWNER_IS_EMPTY = 1000;
+    uint16 constant OWNER_IS_EMPTY              = 1000;
+    uint16 constant SENDER_IS_NOT_MANAGER       = 1001;
+    uint16 constant PLATFORM_CODE_IS_EMPTY      = 1002;
+    uint16 constant CARD_CODE_IS_EMPTY          = 1003;
+    uint16 constant INDEX_CODE_IS_EMPTY         = 1004;
+    uint16 constant INDEX_BASIS_CODE_IS_EMPTY   = 1005;
+    uint16 constant COLLECTION_CODE_IS_EMPTY    = 1006;
+    uint16 constant RECIPIENT_IS_ZERO           = 1007;
+    uint16 constant NEW_OWNER_IS_ZERO           = 1008;
+    uint16 constant NEW_MANAGER_IS_ZERO         = 1009;
 }

@@ -1,0 +1,349 @@
+pragma ever-solidity ^0.62.0;
+
+import "@broxus/ever-contracts/contracts/access/abstract/Ownable.tsol";
+import "@broxus/ever-contracts/contracts/upgrade/abstract/Upgradable.tsol";
+import "@broxus/ever-contracts/contracts/upgrade/abstract/Upgrader.tsol";
+import "@broxus/tip4/contracts/TIP4_3/IndexBasis.tsol";
+import "@broxus/tip4/contracts/TIP6/TIP6.tsol";
+
+import "../interfaces/IGwentCollection.tsol";
+
+import "../libraries/GwentPlatformTypes.tsol";
+
+import "../GwentPlatform.tsol";
+
+abstract contract GwentCollectionBase is
+    Ownable,
+    Upgradable, // To upgrade collection contract
+    Upgrader,   // To provide upgrade for card contract from collection
+    TIP6,
+    IGwentCollection
+{
+    /// @dev Random nonce to deploy contract with different addresses
+    uint32 public static nonce;
+
+    uint256 internal _totalCardSupply;
+    string internal _json;
+    TvmCell internal _platformCode;
+
+    TvmCell internal _cardCode;
+    uint32 internal _cardCodeVersion;
+
+    TvmCell internal _indexCode;
+    TvmCell internal _indexBasisCode;
+
+    function getJson()
+        external
+        view
+        override
+        responsible
+        returns (string json)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _json;
+    }
+
+    function totalSupply()
+        external
+        view
+        override
+        responsible
+        returns (uint128 count)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } uint128(_totalCardSupply);
+    }
+
+    function nftCode()
+        external
+        view
+        override
+        responsible
+        returns (TvmCell code)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _buildCardCode();
+    }
+
+    function nftCodeHash()
+        external
+        view
+        override
+        responsible
+        returns (uint256 codeHash)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } tvm.hash(_buildCardCode());
+    }
+
+    function indexBasisCode()
+        external
+        view
+        override
+        responsible
+        returns (TvmCell code)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _buildIndexBasisCode();
+    }
+
+    function indexBasisCodeHash()
+        external
+        view
+        override
+        responsible
+        returns (uint256 hash)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } tvm.hash(_buildIndexBasisCode());
+    }
+
+    function indexCode()
+        external
+        view
+        override
+        responsible
+        returns (TvmCell code)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _indexCode;
+    }
+
+    function indexCodeHash()
+        external
+        view
+        override
+        responsible
+        returns (uint256 hash)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } tvm.hash(_indexCode);
+    }
+
+    function platformCode()
+        external
+        view
+        override
+        responsible
+        returns (TvmCell)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _buildPlatformCode();
+    }
+
+    function platformCodeHash()
+        external
+        view
+        override
+        responsible
+        returns (uint256)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } tvm.hash(_buildPlatformCode());
+    }
+
+    function nftCodeVersion()
+        external
+        view
+        override
+        responsible
+        returns (uint32)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _cardCodeVersion;
+    }
+
+    function resolveIndexBasis()
+        external
+        view
+        override
+        responsible
+        returns (address indexBasis)
+    {
+        TvmCell code = _buildIndexBasisCode();
+        TvmCell state = _buildIndexBasisState(code, address(this));
+        uint256 hashState = tvm.hash(state);
+
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } address.makeAddrStd(address(this).wid, hashState);
+    }
+
+    function nftAddress(uint256 id)
+        external
+        view
+        override
+        responsible
+        returns (address)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _resolveCardAddress(id);
+    }
+
+    function _getTargetBalanceInternal()
+        internal
+        view
+        override (Ownable, Upgrader)
+        returns (uint128)
+    {
+        return GwentGas.GWENT_TARGET_BALANCE;
+    }
+
+    function _getInstanceAddressInternal(TvmCell _deployParams)
+        internal
+        view
+        override
+        returns (address)
+    {
+        return _resolveCardAddress(abi.decode(_deployParams, uint256));
+    }
+
+    function _resolveCardAddress(uint256 _cardId) internal view returns (address) {
+        return address.makeAddrStd(
+            address(this).wid,
+            tvm.hash(_buildCardStateInit(_cardId))
+        );
+    }
+
+    function _getParamsForUpgradeInternal()
+        internal
+        view
+        override
+        returns (uint32, TvmCell)
+    {
+        return (_cardCodeVersion, _buildCardCode());
+    }
+
+    function _initializeTIP6() internal {
+        _supportedInterfaces[bytes4(tvm.functionId(ITIP6.supportsInterface))] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(ITIP4_1Collection.totalSupply)) ^
+            bytes4(tvm.functionId(ITIP4_1Collection.nftCode)) ^
+            bytes4(tvm.functionId(ITIP4_1Collection.nftCodeHash)) ^
+            bytes4(tvm.functionId(ITIP4_1Collection.nftAddress))
+        ] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(ITIP4_2JSON_Metadata.getJson))] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(ITIP4_3Collection.indexBasisCode)) ^
+            bytes4(tvm.functionId(ITIP4_3Collection.indexBasisCodeHash)) ^
+            bytes4(tvm.functionId(ITIP4_3Collection.indexCode)) ^
+            bytes4(tvm.functionId(ITIP4_3Collection.indexCodeHash)) ^
+            bytes4(tvm.functionId(ITIP4_3Collection.resolveIndexBasis))
+        ] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(IGwentCollection.platformCode)) ^
+            bytes4(tvm.functionId(IGwentCollection.platformCodeHash)) ^
+            bytes4(tvm.functionId(IGwentCollection.nftCodeVersion)) ^
+            bytes4(tvm.functionId(IGwentCollection.setCardCode)) ^
+            bytes4(tvm.functionId(IGwentCollection.mintCard))
+        ] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(IOwnable.getOwner)) ^
+            bytes4(tvm.functionId(IOwnable.setOwner))
+        ] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(ITargetBalance.getTargetBalance))] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(IVersion.getVersion))] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(IUpgradable.upgrade))] = true;
+    }
+
+    /// @dev Deploys contract for EVER Scan indexer
+    function _deployIndexBasis() internal view {
+        TvmCell code = _buildIndexBasisCode();
+        TvmCell state = _buildIndexBasisState(code, address(this));
+
+        new IndexBasis{
+            stateInit: state,
+            value: GwentGas.INDEX_BASIS_DEPLOY_VALUE,
+            bounce: false
+        }();
+    }
+
+    /// @dev Adds collection as salt for Card contract's code
+    function _buildCardCode() internal view returns (TvmCell) {
+        TvmBuilder salt;
+
+        salt.store(address(this));
+
+        return tvm.setCodeSalt(_cardCode, salt.toCell());
+    }
+
+    /// @dev Adds collection as salt for Platform contract's code
+    function _buildPlatformCode() internal view returns (TvmCell) {
+        TvmBuilder salt;
+
+        salt.store(address(this));
+
+        return tvm.setCodeSalt(_platformCode, salt.toCell());
+    }
+
+    function _buildCardStateInit(uint256 _cardId) internal view returns (TvmCell) {
+        return tvm.buildStateInit({
+            contr: GwentPlatform,
+            pubkey: 0,
+            varInit: {
+                _deployer: address(this),
+                _type: GwentPlatformTypes.PLATFORM_TYPE_CARD,
+                _params: abi.encode(_cardId)
+            },
+            code: _buildPlatformCode()
+        });
+    }
+
+    /// @dev Adds NFT stamp for collection's IndexBasis contract
+    function _buildIndexBasisCode() internal view returns (TvmCell) {
+        TvmBuilder salt;
+
+        salt.store("nft");
+
+        return tvm.setCodeSalt(_indexBasisCode, salt.toCell());
+    }
+
+    function _buildIndexBasisState(
+        TvmCell code,
+        address collection
+    ) internal pure returns (TvmCell) {
+        return tvm.buildStateInit({
+            contr: IndexBasis,
+            varInit: { _collection: collection },
+            code: code
+        });
+    }
+}

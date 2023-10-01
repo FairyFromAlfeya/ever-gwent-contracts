@@ -1,0 +1,199 @@
+pragma ever-solidity ^0.62.0;
+
+pragma AbiHeader expire;
+
+import "./abstract/GwentCollectionBase.tsol";
+
+import "./libraries/GwentErrors.tsol";
+
+import "./structures/upgrade/IGwentCardExtra.tsol";
+import "./structures/upgrade/IGwentCollectionUpgradeData.tsol";
+
+contract GwentCollection is GwentCollectionBase {
+    constructor(
+        address _initialOwner,
+        string _initialJson,
+        TvmCell _initialIndexCode,
+        TvmCell _initialIndexBasisCode,
+        TvmCell _initialPlatformCode,
+        TvmCell _initialCardCode,
+        optional(address) _remainingGasTo
+    )
+        public
+        reserveAcceptAndRefund(
+            _getTargetBalanceInternal(),
+            _remainingGasTo,
+            msg.sender
+        )
+        validAddress(_initialOwner, GwentErrors.OWNER_IS_EMPTY)
+        validTvmCell(_initialIndexCode, GwentErrors.INDEX_CODE_IS_EMPTY)
+        validTvmCell(_initialIndexBasisCode, GwentErrors.INDEX_BASIS_CODE_IS_EMPTY)
+        validTvmCell(_initialPlatformCode, GwentErrors.PLATFORM_CODE_IS_EMPTY)
+        validTvmCell(_initialCardCode, GwentErrors.CARD_CODE_IS_EMPTY)
+    {
+        _setOwnerInternal(_initialOwner);
+        _setCurrentVersionInternal(1, 0);
+
+        _json = _initialJson;
+        _platformCode = _initialPlatformCode;
+
+        _cardCode = _initialCardCode;
+        _cardCodeVersion = 1;
+
+        _indexCode = _initialIndexCode;
+        _indexBasisCode = _initialIndexBasisCode;
+
+        emit PlatformCodeSet(tvm.hash(_buildPlatformCode()));
+        emit CardCodeChanged(tvm.hash(_buildCardCode()), _cardCodeVersion);
+
+        // Initialize TIP6 and collection's index once
+        _initializeTIP6();
+        _deployIndexBasis();
+    }
+
+    function setCardCode(
+        TvmCell _newCardCode,
+        address _remainingGasTo
+    )
+        external
+        override
+        reserveAndRefund(
+            _getTargetBalanceInternal(),
+            _remainingGasTo,
+            _getOwnerInternal()
+        )
+        onlyOwner
+        validTvmCell(_newCardCode, GwentErrors.CARD_CODE_IS_EMPTY)
+    {
+        _cardCode = _newCardCode;
+        _cardCodeVersion++;
+
+        emit CardCodeChanged(tvm.hash(_buildCardCode()), _cardCodeVersion);
+    }
+
+    function mintCard(
+        address _recipient,
+        string _cardJson,
+        IGwentCardParams.GwentCardParams _cardParams,
+        address _remainingGasTo
+    )
+        external
+        override
+        reserveAndRefund(
+            _getTargetBalanceInternal(),
+            _remainingGasTo,
+            _getOwnerInternal()
+        )
+        onlyOwner
+        validAddress(_recipient, GwentErrors.RECIPIENT_IS_ZERO)
+    {
+        TvmCell state = _buildCardStateInit(_totalCardSupply);
+
+        // Encode card's assets
+        TvmCell extra = abi.encode(
+            IGwentCardExtra.GwentCardExtra({
+                recipient: _recipient,
+                json: _cardJson,
+                indexCode: _indexCode,
+                params: _cardParams
+            })
+        );
+
+        address card = new GwentPlatform{
+            stateInit: state,
+            value: GwentGas.MINT_CARD_VALUE,
+            flag: MsgFlag.SENDER_PAYS_FEES,
+            bounce: false
+        }(
+            _buildCardCode(),
+            _cardCodeVersion,
+            extra,
+            _remainingGasTo
+        );
+
+        emit NftCreated({
+            id: _totalCardSupply,
+            nft: card,
+            owner: _recipient,
+            manager: _recipient,
+            creator: msg.sender
+        });
+
+        _totalCardSupply++;
+    }
+
+    function upgrade(
+        TvmCell _code,
+        optional(uint32) _version,
+        optional(address) _remainingGasTo
+    )
+        external
+        override
+        reserve(_getTargetBalanceInternal())
+        onlyOwner
+        validTvmCell(_code, GwentErrors.COLLECTION_CODE_IS_EMPTY)
+    {
+        uint32 currentVersion = _version.hasValue() ? _version.get() : _getCurrentVersionInternal() + 1;
+        address remainingGasTo = _remainingGasTo.hasValue() ? _remainingGasTo.get() : msg.sender;
+
+        // Pack all contract's state
+        TvmCell data = abi.encode(
+            IGwentCollectionUpgradeData.GwentCollectionUpgradeData({
+                versions: IGwentVersions.GwentVersions(currentVersion, _getCurrentVersionInternal()),
+                remainingGasTo: remainingGasTo,
+
+                nonce: nonce,
+                owner: _getOwnerInternal(),
+                totalCardSupply: _totalCardSupply,
+                json: _json,
+                supportedInterfaces: _supportedInterfaces,
+                platformCode: _platformCode,
+
+                cardCode: _cardCode,
+                cardCodeVersion: _cardCodeVersion,
+
+                indexCode: _indexCode,
+                indexBasisCode: _indexBasisCode
+            })
+        );
+
+        // Forever changes contract's code for future calls
+        tvm.setcode(_code);
+        // Changes contract's code for current transaction
+        tvm.setCurrentCode(_code);
+
+        onCodeUpgrade(data);
+    }
+
+    function onCodeUpgrade(TvmCell _data) private {
+        // Flush old contract's storage scheme
+        tvm.resetStorage();
+
+        IGwentCollectionUpgradeData.GwentCollectionUpgradeData data = abi.decode(
+            _data,
+            IGwentCollectionUpgradeData.GwentCollectionUpgradeData
+        );
+
+        nonce = data.nonce;
+
+        _totalCardSupply = data.totalCardSupply;
+        _json = data.json;
+        _platformCode = data.platformCode;
+        _supportedInterfaces = data.supportedInterfaces;
+
+        _cardCode = data.cardCode;
+        _cardCodeVersion = data.cardCodeVersion;
+
+        _indexCode = data.indexCode;
+        _indexBasisCode = data.indexBasisCode;
+
+        _setOwnerSilent(data.owner);
+        _setCurrentVersionInternal(data.versions.current, data.versions.previous);
+
+        data.remainingGasTo.transfer({
+            value: 0,
+            flag: MsgFlag.ALL_NOT_RESERVED + MsgFlag.IGNORE_ERRORS,
+            bounce: false
+        });
+    }
+}

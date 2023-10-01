@@ -1,0 +1,8 @@
+pragma ever-solidity ^0.62.0;
+
+interface IGwentVersions {
+    struct GwentVersions {
+        uint32 current;
+        uint32 previous;
+    }
+}

@@ -1,0 +1,24 @@
+pragma ever-solidity ^0.62.0;
+
+import "../IGwentCardParams.tsol";
+import "./IGwentVersions.tsol";
+
+/// @dev Structure with card's contract state to simplify its update
+interface IGwentCardUpgradeData {
+    struct GwentCardUpgradeData {
+        IGwentVersions.GwentVersions versions;
+        address remainingGasTo;
+
+        address owner;
+        address manager;
+        address upgrader;
+
+        uint256 id;
+        address collection;
+        string json;
+        IGwentCardParams.GwentCardParams params;
+
+        mapping(bytes4 => bool) supportedInterfaces;
+        TvmCell indexCode;
+    }
+}

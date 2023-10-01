@@ -1,0 +1,250 @@
+pragma ever-solidity ^0.62.0;
+
+pragma AbiHeader expire;
+
+import "@broxus/tip4/contracts/TIP4_1/interfaces/INftChangeOwner.tsol";
+import "@broxus/tip4/contracts/TIP4_1/interfaces/INftChangeManager.tsol";
+import "@broxus/tip4/contracts/TIP4_1/interfaces/INftTransfer.tsol";
+
+import "./abstract/GwentCardBase.tsol";
+
+import "./libraries/GwentErrors.tsol";
+
+import "./structures/upgrade/IGwentPlatformUpgradeData.tsol";
+import "./structures/upgrade/IGwentCardExtra.tsol";
+import "./structures/upgrade/IGwentCardUpgradeData.tsol";
+
+contract GwentCard is GwentCardBase {
+    modifier onlyManager() {
+        require(
+            msg.sender.value != 0 && msg.sender == _manager,
+            GwentErrors.SENDER_IS_NOT_MANAGER
+        );
+        _;
+    }
+
+    /// @dev Prevent direct deploy
+    constructor() public {
+        revert();
+    }
+
+    function changeOwner(
+        address newOwner,
+        address sendGasTo,
+        mapping(address => CallbackParams) callbacks
+    )
+        external
+        override
+        reserveAndRefund(_getTargetBalanceInternal(), sendGasTo, _owner)
+        onlyManager
+        validAddress(newOwner, GwentErrors.NEW_OWNER_IS_ZERO)
+    {
+        emit OwnerChanged(_owner, newOwner);
+
+        for ((address destination, CallbackParams params) : callbacks) {
+            INftChangeOwner(destination)
+                .onNftChangeOwner{
+                    value: params.value,
+                    flag: MsgFlag.SENDER_PAYS_FEES,
+                    bounce: false
+                }(
+                    _id,
+                    _manager,
+                    _owner,
+                    newOwner,
+                    _collection,
+                    sendGasTo,
+                    params.payload
+                );
+        }
+
+        // Index must be redeployed each time the _owner changes
+        _destructIndex(sendGasTo);
+
+        _owner = newOwner;
+
+        _deployIndex();
+    }
+
+    function changeManager(
+        address newManager,
+        address sendGasTo,
+        mapping(address => CallbackParams) callbacks
+    )
+        external
+        override
+        reserveAndRefund(_getTargetBalanceInternal(), sendGasTo, _owner)
+        onlyManager
+        validAddress(newManager, GwentErrors.NEW_MANAGER_IS_ZERO)
+    {
+        emit ManagerChanged(_manager, newManager);
+
+        for ((address destination, CallbackParams params) : callbacks) {
+            INftChangeManager(destination)
+                .onNftChangeManager{
+                    value: params.value,
+                    flag: MsgFlag.SENDER_PAYS_FEES,
+                    bounce: false
+                }(
+                    _id,
+                    _owner,
+                    _manager,
+                    newManager,
+                    _collection,
+                    sendGasTo,
+                    params.payload
+                );
+        }
+
+        _manager = newManager;
+    }
+
+    function transfer(
+        address to,
+        address sendGasTo,
+        mapping(address => CallbackParams) callbacks
+    )
+        external
+        override
+        reserveAndRefund(_getTargetBalanceInternal(), sendGasTo, _owner)
+        onlyManager
+        validAddress(to, GwentErrors.RECIPIENT_IS_ZERO)
+    {
+        emit OwnerChanged(_owner, to);
+        emit ManagerChanged(_manager, to);
+
+        for ((address destination, CallbackParams params) : callbacks) {
+            INftTransfer(destination)
+                .onNftTransfer{
+                    value: params.value,
+                    flag: MsgFlag.SENDER_PAYS_FEES,
+                    bounce: false
+                }(
+                    _id,
+                    _owner,
+                    to,
+                    _manager,
+                    to,
+                    _collection,
+                    sendGasTo,
+                    params.payload
+                );
+        }
+
+        // Index must be redeployed each time the _owner changes
+        _destructIndex(sendGasTo);
+
+        _owner = to;
+        _manager = to;
+
+        _deployIndex();
+    }
+
+    function upgrade(
+        uint32 _version,
+        TvmCell _code,
+        address _remainingGasTo
+    )
+        external
+        override
+        reserve(_getTargetBalanceInternal())
+        onlyUpgrader
+    {
+        // Pack all contract's state
+        TvmCell data = abi.encode(
+            IGwentCardUpgradeData.GwentCardUpgradeData({
+                versions: IGwentVersions.GwentVersions(_version, _getCurrentVersionInternal()),
+                remainingGasTo: _remainingGasTo,
+
+                owner: _owner,
+                manager: _manager,
+                upgrader: _getUpgraderInternal(),
+
+                id: _id,
+                collection: _collection,
+                json: _json,
+                params: _params,
+
+                supportedInterfaces: _supportedInterfaces,
+                indexCode: _indexCode
+            })
+        );
+
+        // Forever changes contract's code for future calls
+        tvm.setcode(_code);
+        // Changes contract's code for current transaction
+        tvm.setCurrentCode(_code);
+
+        onCodeUpgrade(data);
+    }
+
+    function onCodeUpgrade(TvmCell _data) private {
+        // Flush old contract's storage scheme
+        tvm.resetStorage();
+
+        (
+            IGwentVersions.GwentVersions versions,
+            address remainingGasTo
+        ) = _data.toSlice().decode(IGwentVersions.GwentVersions, address);
+
+        // Only platform upgrade has previous version 0 because contract hasn't been deployed previously
+        if (versions.previous == 0) {
+            _upgradeFromPlatform(_data);
+        } else {
+            _upgradeFromVersion(_data);
+        }
+
+        remainingGasTo.transfer({
+            value: 0,
+            flag: MsgFlag.ALL_NOT_RESERVED + MsgFlag.DESTROY_IF_ZERO,
+            bounce: false
+        });
+    }
+
+    function _upgradeFromPlatform(TvmCell _data) private {
+        IGwentPlatformUpgradeData.GwentPlatformUpgradeData data = abi.decode(
+            _data,
+            IGwentPlatformUpgradeData.GwentPlatformUpgradeData
+        );
+
+        IGwentCardExtra.GwentCardExtra extra = abi.decode(data.extra, IGwentCardExtra.GwentCardExtra);
+
+        _collection = data.deployer;
+        _id = abi.decode(data.params, uint256);
+
+        _owner = extra.recipient;
+        _manager = _owner;
+        _json = extra.json;
+        _params = extra.params;
+
+        _indexCode = extra.indexCode;
+
+        _setCurrentVersionInternal(data.versions.current, data.versions.previous);
+        _setUpgraderInternal(_collection);
+
+        // Initialize TIP6 and NFT's index once
+        _initializeTIP6();
+        _deployIndex();
+    }
+
+    function _upgradeFromVersion(TvmCell _data) private {
+        IGwentCardUpgradeData.GwentCardUpgradeData data = abi.decode(
+            _data,
+            IGwentCardUpgradeData.GwentCardUpgradeData
+        );
+
+        _collection = data.collection;
+        _id = data.id;
+
+        _owner = data.owner;
+        _manager = data.manager;
+        _json = data.json;
+        _params = data.params;
+
+        _indexCode = data.indexCode;
+        _supportedInterfaces = data.supportedInterfaces;
+
+        _setUpgraderSilent(data.upgrader);
+        _setCurrentVersionInternal(data.versions.current, data.versions.previous);
+    }
+}

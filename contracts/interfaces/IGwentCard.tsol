@@ -1,0 +1,54 @@
+pragma ever-solidity ^0.62.0;
+
+import "@broxus/tip4/contracts/TIP4_1/interfaces/ITIP4_1NFT.tsol";
+import "@broxus/tip4/contracts/TIP4_2/interfaces/ITIP4_2JSON_Metadata.tsol";
+import "@broxus/tip4/contracts/TIP4_3/interfaces/ITIP4_3NFT.tsol";
+
+import "../structures/IGwentCardParams.tsol";
+
+interface IGwentCard is
+    ITIP4_1NFT,
+    ITIP4_2JSON_Metadata,
+    ITIP4_3NFT
+{
+    /// @dev Returns raw encoded params
+    function getRawParams() external view responsible returns (IGwentCardParams.GwentCardParams);
+
+    /// @dev Returns card's strength
+    function getStrength() external view responsible returns (uint8);
+
+    /// @dev Returns card's strength after boost (example: berserker after mardroeme's boost)
+    function getStrengthBoosted() external view responsible returns (uint8);
+
+    /// @dev Returns decoded card's abilities
+    function getAbilities()
+        external
+        view
+        responsible
+        returns (
+            bool hero,
+            bool medic,
+            bool moraleBoost,
+            bool master,
+            bool spy,
+            bool tightBond
+        );
+
+    /// @dev Returns decoded card's effects
+    function getEffects()
+        external
+        view
+        responsible
+        returns (
+            bool scorch,
+            bool decoy,
+            bool horn,
+            bool avenger,
+            bool mardroeme,
+            bool berserker
+        );
+
+    function getRows() external view responsible returns (uint8);
+
+    function getFaction() external view responsible returns (uint8);
+}

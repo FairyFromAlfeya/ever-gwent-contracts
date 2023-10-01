@@ -1,0 +1,32 @@
+pragma ever-solidity ^0.62.0;
+
+import "@broxus/tip4/contracts/TIP4_1/interfaces/ITIP4_1Collection.tsol";
+import "@broxus/tip4/contracts/TIP4_2/interfaces/ITIP4_2JSON_Metadata.tsol";
+import "@broxus/tip4/contracts/TIP4_3/interfaces/ITIP4_3Collection.tsol";
+
+import "../structures/IGwentCardParams.tsol";
+
+interface IGwentCollection is
+    ITIP4_1Collection,
+    ITIP4_2JSON_Metadata,
+    ITIP4_3Collection
+{
+    event CardCodeChanged(uint256 codeHash, uint32 newVersion);
+
+    event PlatformCodeSet(uint256 codeHash);
+
+    function platformCode() external view responsible returns (TvmCell);
+
+    function platformCodeHash() external view responsible returns (uint256);
+
+    function nftCodeVersion() external view responsible returns (uint32);
+
+    function setCardCode(TvmCell _newCardCode, address _remainingGasTo) external;
+
+    function mintCard(
+        address _recipient,
+        string _cardJson,
+        IGwentCardParams.GwentCardParams _cardParams,
+        address _remainingGasTo
+    ) external;
+}

@@ -1,0 +1,13 @@
+pragma ever-solidity ^0.62.0;
+
+/// @dev Card's game characteristics
+interface IGwentCardParams {
+    struct GwentCardParams {
+        uint8 strength;
+        uint8 strengthBoosted;
+        uint8 abilities;
+        uint8 effects;
+        uint8 rows;
+        uint8 faction;
+    }
+}

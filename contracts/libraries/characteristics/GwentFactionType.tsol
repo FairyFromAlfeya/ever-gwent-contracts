@@ -1,0 +1,11 @@
+pragma ever-solidity ^0.62.0;
+
+/// @dev Values are power of 2 to encode all factions in uint8
+/// @dev Can be decoded from uint 8 by using ^ operator
+library GwentFactionType {
+    uint8 constant GWENT_FACTION_TYPE_MONSTERS = 1;
+    uint8 constant GWENT_FACTION_TYPE_NILFGAARDIAN_EMPIRE = 2;
+    uint8 constant GWENT_FACTION_TYPE_NORTHERN_REALMS = 4;
+    uint8 constant GWENT_FACTION_TYPE_SCOIATAEL = 8;
+    uint8 constant GWENT_FACTION_TYPE_SKELLIGE = 16;
+}

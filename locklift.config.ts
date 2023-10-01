@@ -1,7 +1,9 @@
 import '@broxus/locklift-deploy';
+import '@broxus/locklift-verifier';
 
 import { lockliftChai, LockliftConfig } from 'locklift';
 import { Deployments } from '@broxus/locklift-deploy';
+import { BigNumber } from 'bignumber.js';
 import * as dotenv from 'dotenv';
 import * as chai from 'chai';
 
@@ -9,6 +11,7 @@ import { FactorySource } from './build/factorySource';
 
 dotenv.config();
 chai.use(lockliftChai);
+BigNumber.config({ EXPONENTIAL_AT: 1e9 });
 
 declare global {
   const locklift: import('locklift').Locklift<FactorySource>;
@@ -23,8 +26,18 @@ declare module 'locklift' {
 }
 
 const config: LockliftConfig = {
-  compiler: { version: '0.71.0' },
-  linker: { version: '0.20.6' },
+  compiler: {
+    version: '0.62.0',
+    externalContractsArtifacts: {
+      'node_modules/@broxus/tip4/build': ['Index', 'IndexBasis'],
+    },
+  },
+  linker: { version: '0.15.48' },
+  verifier: {
+    verifierVersion: 'latest',
+    apiKey: process.env.EVERSCAN_API_KEY!,
+    secretKey: process.env.EVERSCAN_SECRET_KEY!,
+  },
   networks: {
     local: {
       connection: {
@@ -59,6 +72,24 @@ const config: LockliftConfig = {
       },
       keys: {
         phrase: process.env.LOCAL_PHRASE,
+        amount: 20,
+      },
+    },
+    mainnet: {
+      connection: {
+        id: 3,
+        group: 'main',
+        type: 'graphql',
+        data: {
+          endpoints: [process.env.MAINNET_NETWORK_ENDPOINT!],
+        },
+      },
+      giver: {
+        address: process.env.MAINNET_GIVER_ADDRESS!,
+        key: process.env.MAINNET_GIVER_KEY!,
+      },
+      keys: {
+        phrase: process.env.MAINNET_PHRASE,
         amount: 20,
       },
     },

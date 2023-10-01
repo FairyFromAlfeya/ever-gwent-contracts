@@ -1,0 +1,11 @@
+pragma ever-solidity ^0.62.0;
+
+/// @dev Values are power of 2 to encode all possible rows in uint8
+/// @dev Can be decoded from uint 8 by using ^ operator
+library GwentRowType {
+    uint8 constant GWENT_ROW_TYPE_MELEE = 1;
+    uint8 constant GWENT_ROW_TYPE_RANGE = 2;
+    uint8 constant GWENT_ROW_TYPE_SIEGE = 4;
+    uint8 constant GWENT_ROW_TYPE_WEATHER = 8;
+    uint8 constant GWENT_ROW_TYPE_LEADER = 16;
+}

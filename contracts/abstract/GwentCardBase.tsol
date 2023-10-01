@@ -1,0 +1,346 @@
+pragma ever-solidity ^0.62.0;
+
+import "@broxus/ever-contracts/contracts/upgrade/abstract/UpgradableByRequest.tsol";
+
+import "@broxus/tip4/contracts/TIP6/TIP6.tsol";
+import "@broxus/tip4/contracts/TIP4_3/Index.tsol";
+
+import "../interfaces/IGwentCard.tsol";
+
+import "../libraries/GwentGas.tsol";
+import "../libraries/characteristics/GwentEffectType.tsol";
+import "../libraries/characteristics/GwentAbilityType.tsol";
+
+import "../structures/IGwentCardParams.tsol";
+
+abstract contract GwentCardBase is
+    UpgradableByRequest,
+    TIP6,
+    IGwentCard
+{
+    address internal _collection;
+    uint256 internal _id;
+
+    address internal _owner;
+    address internal _manager;
+    string internal _json;
+    IGwentCardParams.GwentCardParams internal _params;
+
+    TvmCell internal _indexCode;
+
+    function getJson()
+        external
+        view
+        override
+        responsible
+        returns (string json)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _json;
+    }
+
+    function getInfo()
+        external
+        view
+        override
+        responsible
+        returns (
+            uint256 id,
+            address owner,
+            address manager,
+            address collection
+        )
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } (_id, _owner, _manager, _collection);
+    }
+
+    function indexCode()
+        external
+        view
+        override
+        responsible
+        returns (TvmCell code)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _indexCode;
+    }
+
+    function indexCodeHash()
+        external
+        view
+        override
+        responsible
+        returns (uint256 hash)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } tvm.hash(_indexCode);
+    }
+
+    function resolveIndex(
+        address collection,
+        address owner
+    )
+        external
+        view
+        override
+        responsible
+        returns (address index)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _resolveIndexAddress(collection, owner);
+    }
+
+    function getRawParams()
+        external
+        view
+        override
+        responsible
+        returns (IGwentCardParams.GwentCardParams)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _params;
+    }
+
+    function getStrength()
+        external
+        view
+        override
+        responsible
+        returns (uint8)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _params.strength;
+    }
+
+    function getStrengthBoosted()
+        external
+        view
+        override
+        responsible
+        returns (uint8)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _params.strengthBoosted;
+    }
+
+    function getEffects()
+        external
+        view
+        override
+        responsible
+        returns (
+            bool scorch,
+            bool decoy,
+            bool horn,
+            bool avenger,
+            bool mardroeme,
+            bool berserker
+        )
+    {
+        bool hasScorch = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SCORCH) == 1;
+        bool hasDecoy = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_DECOY) == 1;
+        bool hasHorn = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_COMMANDERS_HORN) == 1;
+        bool hasAvenger = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SUMMON_AVENGER) == 1;
+        bool hasMardroeme = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_MARDROEME) == 1;
+        bool hasBerserker = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_BERSERKER) == 1;
+
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } (hasScorch, hasDecoy, hasHorn, hasAvenger, hasMardroeme, hasBerserker);
+    }
+
+    function getAbilities()
+        external
+        view
+        override
+        responsible
+        returns (
+            bool hero,
+            bool medic,
+            bool moraleBoost,
+            bool master,
+            bool spy,
+            bool tightBond
+        )
+    {
+        bool isHero = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_HERO) == 1;
+        bool isMedic = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MEDIC) == 1;
+        bool isMoraleBoost = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MORALE_BOOST) == 1;
+        bool isMaster = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MASTER) == 1;
+        bool isSpy = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_SPY) == 1;
+        bool isTightBond = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_TIGHT_BOND) == 1;
+
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } (isHero, isMedic, isMoraleBoost, isMaster, isSpy, isTightBond);
+    }
+
+    function getFaction()
+        external
+        view
+        override
+        responsible
+        returns (uint8)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _params.faction;
+    }
+
+    function getRows()
+        external
+        view
+        override
+        responsible
+        returns (uint8)
+    {
+        return {
+            value: 0,
+            flag: MsgFlag.REMAINING_GAS,
+            bounce: false
+        } _params.rows;
+    }
+
+    function _initializeTIP6() internal {
+        _supportedInterfaces[bytes4(tvm.functionId(ITIP6.supportsInterface))] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(ITIP4_1NFT.getInfo)) ^
+            bytes4(tvm.functionId(ITIP4_1NFT.changeOwner)) ^
+            bytes4(tvm.functionId(ITIP4_1NFT.changeManager)) ^
+            bytes4(tvm.functionId(ITIP4_1NFT.transfer))
+        ] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(ITIP4_2JSON_Metadata.getJson))] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(ITIP4_3NFT.indexCode)) ^
+            bytes4(tvm.functionId(ITIP4_3NFT.indexCodeHash)) ^
+            bytes4(tvm.functionId(ITIP4_3NFT.resolveIndex))
+        ] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(IGwentCard.getRawParams)) ^
+            bytes4(tvm.functionId(IGwentCard.getStrength)) ^
+            bytes4(tvm.functionId(IGwentCard.getStrengthBoosted)) ^
+            bytes4(tvm.functionId(IGwentCard.getEffects)) ^
+            bytes4(tvm.functionId(IGwentCard.getAbilities)) ^
+            bytes4(tvm.functionId(IGwentCard.getFaction)) ^
+            bytes4(tvm.functionId(IGwentCard.getRows))
+        ] = true;
+        _supportedInterfaces[
+            bytes4(tvm.functionId(IUpgradableByRequestBase.getUpgrader)) ^
+            bytes4(tvm.functionId(IUpgradableByRequestBase.requestUpgrade))
+        ] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(IVersion.getVersion))] = true;
+        _supportedInterfaces[bytes4(tvm.functionId(ITargetBalance.getTargetBalance))] = true;
+    }
+
+    function _getDeployParamsInternal()
+        internal
+        view
+        override
+        returns (TvmCell)
+    {
+        return abi.encode(_id);
+    }
+
+    function _getTargetBalanceInternal()
+        internal
+        view
+        override
+        returns (uint128)
+    {
+        return GwentGas.GWENT_TARGET_BALANCE;
+    }
+
+    function _resolveIndexAddress(
+        address _nftCollection,
+        address _nftOwner
+    ) internal view returns (address) {
+        TvmCell code = _buildIndexCode(_nftCollection, _nftOwner);
+        TvmCell state = _buildIndexState(code, address(this));
+        uint256 hashState = tvm.hash(state);
+
+        return address.makeAddrStd(address(this).wid, hashState);
+    }
+
+    /// @dev Deploys index contracts for EVER Wallet and EVER Scan indexers
+    function _deployIndex() internal view {
+        TvmCell codeIndexOwner = _buildIndexCode(address(0), _owner);
+        TvmCell stateIndexOwner = _buildIndexState(codeIndexOwner, address(this));
+        new Index{ stateInit: stateIndexOwner, value: GwentGas.INDEX_DEPLOY_VALUE, bounce: false }(_collection);
+
+        TvmCell codeIndexOwnerRoot = _buildIndexCode(_collection, _owner);
+        TvmCell stateIndexOwnerRoot = _buildIndexState(codeIndexOwnerRoot, address(this));
+        new Index{ stateInit: stateIndexOwnerRoot, value: GwentGas.INDEX_DEPLOY_VALUE, bounce: false }(_collection);
+    }
+
+    function _destructIndex(address remainingGasTo) internal virtual view {
+        address oldIndexOwner = _resolveIndexAddress(address(0), _owner);
+        IIndex(oldIndexOwner)
+            .destruct{
+                value: GwentGas.INDEX_DESTROY_VALUE,
+                bounce: false
+            }(remainingGasTo);
+
+        address oldIndexOwnerRoot = _resolveIndexAddress(_collection, _owner);
+        IIndex(oldIndexOwnerRoot)
+            .destruct{
+                value: GwentGas.INDEX_DESTROY_VALUE,
+                bounce: false
+            }(remainingGasTo);
+    }
+
+    /// @dev Adds collection and owner addresses for card's Index contract
+    function _buildIndexCode(
+        address _nftCollection,
+        address _nftOwner
+    ) internal view returns (TvmCell) {
+        TvmBuilder salt;
+
+        salt.store("nft");
+        salt.store(_nftCollection);
+        salt.store(_nftOwner);
+
+        return tvm.setCodeSalt(_indexCode, salt.toCell());
+    }
+
+    function _buildIndexState(
+        TvmCell _code,
+        address _nft
+    ) internal virtual pure returns (TvmCell) {
+        return tvm.buildStateInit({
+            contr: Index,
+            varInit: { _nft: _nft },
+            code: _code
+        });
+    }
+}
