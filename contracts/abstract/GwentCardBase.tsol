@@ -162,12 +162,12 @@ abstract contract GwentCardBase is
             bool berserker
         )
     {
-        bool hasScorch = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SCORCH) == 1;
-        bool hasDecoy = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_DECOY) == 1;
-        bool hasHorn = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_COMMANDERS_HORN) == 1;
-        bool hasAvenger = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SUMMON_AVENGER) == 1;
-        bool hasMardroeme = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_MARDROEME) == 1;
-        bool hasBerserker = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_BERSERKER) == 1;
+        bool hasScorch = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SCORCH) > 0;
+        bool hasDecoy = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_DECOY) > 0;
+        bool hasHorn = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_COMMANDERS_HORN) > 0;
+        bool hasAvenger = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_SUMMON_AVENGER) > 0;
+        bool hasMardroeme = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_MARDROEME) > 0;
+        bool hasBerserker = (_params.effects & GwentEffectType.GWENT_EFFECT_TYPE_BERSERKER) > 0;
 
         return {
             value: 0,
@@ -190,12 +190,12 @@ abstract contract GwentCardBase is
             bool tightBond
         )
     {
-        bool isHero = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_HERO) == 1;
-        bool isMedic = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MEDIC) == 1;
-        bool isMoraleBoost = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MORALE_BOOST) == 1;
-        bool isMaster = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MASTER) == 1;
-        bool isSpy = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_SPY) == 1;
-        bool isTightBond = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_TIGHT_BOND) == 1;
+        bool isHero = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_HERO) > 0;
+        bool isMedic = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MEDIC) > 0;
+        bool isMoraleBoost = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MORALE_BOOST) > 0;
+        bool isMaster = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_MASTER) > 0;
+        bool isSpy = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_SPY) > 0;
+        bool isTightBond = (_params.abilities & GwentAbilityType.GWENT_ABILITY_TYPE_TIGHT_BOND) > 0;
 
         return {
             value: 0,
